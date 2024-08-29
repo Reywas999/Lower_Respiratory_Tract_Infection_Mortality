@@ -1,0 +1,1580 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\PATH\TO\DATA\LRTi.log
+  log type:  text
+ opened on:  DATE
+
+. 
+end of do-file
+
+. do "C:\Users\PATH"
+
+. /* Descriptive */
+. gen lrti_binary = datelrti
+
+. recode lrti_binary 51134 = 0 0/51133 = 1
+(868 changes made to lrti_binary)
+
+. tab lrti_binary
+
+lrti_binary |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |        520       59.91       59.91
+          1 |        348       40.09      100.00
+------------+-----------------------------------
+      Total |        868      100.00
+
+. tab gender
+
+   0=M, 1=F |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       Male |        362       41.71       41.71
+     Female |        506       58.29      100.00
+------------+-----------------------------------
+      Total |        868      100.00
+
+. tab vaccine
+
+     GP flu |
+   register |      Freq.     Percent        Cum.
+------------+-----------------------------------
+    Refused |        368       42.40       42.40
+   Accepted |        500       57.60      100.00
+------------+-----------------------------------
+      Total |        868      100.00
+
+. tab partner
+
+    Marital |
+     status |      Freq.     Percent        Cum.
+------------+-----------------------------------
+    Married |        608       70.05       70.05
+   Divorced |        102       11.75       81.80
+     Single |        158       18.20      100.00
+------------+-----------------------------------
+      Total |        868      100.00
+
+. tab died
+
+   0=Alive, |
+     1=Died |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |        430       49.54       49.54
+          1 |        438       50.46      100.00
+------------+-----------------------------------
+      Total |        868      100.00
+
+. tab gender vaccine, row chi
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |    GP flu register
+  0=M, 1=F |   Refused   Accepted |     Total
+-----------+----------------------+----------
+      Male |       176        186 |       362 
+           |     48.62      51.38 |    100.00 
+-----------+----------------------+----------
+    Female |       192        314 |       506 
+           |     37.94      62.06 |    100.00 
+-----------+----------------------+----------
+     Total |       368        500 |       868 
+           |     42.40      57.60 |    100.00 
+
+          Pearson chi2(1) =   9.8452   Pr = 0.002
+
+. tab gender lrti_binary, row chi
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |      lrti_binary
+  0=M, 1=F |         0          1 |     Total
+-----------+----------------------+----------
+      Male |       229        133 |       362 
+           |     63.26      36.74 |    100.00 
+-----------+----------------------+----------
+    Female |       291        215 |       506 
+           |     57.51      42.49 |    100.00 
+-----------+----------------------+----------
+     Total |       520        348 |       868 
+           |     59.91      40.09 |    100.00 
+
+          Pearson chi2(1) =   2.9047   Pr = 0.088
+
+. tab gender died, row chi
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |    0=Alive, 1=Died
+  0=M, 1=F |         0          1 |     Total
+-----------+----------------------+----------
+      Male |       177        185 |       362 
+           |     48.90      51.10 |    100.00 
+-----------+----------------------+----------
+    Female |       253        253 |       506 
+           |     50.00      50.00 |    100.00 
+-----------+----------------------+----------
+     Total |       430        438 |       868 
+           |     49.54      50.46 |    100.00 
+
+          Pearson chi2(1) =   0.1031   Pr = 0.748
+
+. 
+. /* Defining Follow-up using yearly time scale */
+. stset dateofexit, fail(died) origin(dateofbirth) enter(dateofentry) id(patid) scale(365.25)
+
+Survival-time data settings
+
+           ID variable: patid
+         Failure event: died!=0 & died<.
+Observed time interval: (dateofexit[_n-1], dateofexit]
+     Enter on or after: time dateofentry
+     Exit on or before: failure
+     Time for analysis: (time-origin)/365.25
+                Origin: time dateofbirth
+
+--------------------------------------------------------------------------
+        868  total observations
+          0  exclusions
+--------------------------------------------------------------------------
+        868  observations remaining, representing
+        868  subjects
+        438  failures in single-failure-per-subject data
+  6,266.498  total analysis time at risk and under observation
+                                                At risk from t =         0
+                                     Earliest observed entry t =  75.13484
+                                          Last observed exit t =  99.86585
+
+. 
+. /* 
+> Lexis expansion to define exposure variables:
+> TIME since LRTi diagnosis as no infection == 0, <=3 months == 1, > 3 months == 2
+> Current AGE in three bins, 75-79, 80-84, 85+
+> */
+. 
+. /* As the time scale is in years, 0.25 represents 3 months, and 10 represents the maximum follow up of 10 years */
+. stsplit LRTi, after(datelrti) at(0, 0.25, 10) 
+(673 observations (episodes) created)
+
+. 
+. recode LRTi -1 = 0 0 = 1 .25 = 2
+(1541 changes made to LRTi)
+
+. 
+. /* Creating the label for the PRIMARY exposure */
+. label define LRTi_lab 0 "LRTi(-)" 1 "<= 3 months" 2 "> 3 months" 
+
+. 
+. label values LRTi LRTi_lab
+
+. 
+. /* Creating current age bins */
+. stsplit currage, at(75, 80, 85, 110) 
+(1,079 observations (episodes) created)
+
+. 
+. /* Age bin label creation */
+. label define age 75 "75-79" 80 "80-84" 85 "85+" 
+
+. 
+. label values currage age
+
+. 
+. 
+. foreach var in LRTi currage gender partner vaccine{
+  2.         recast int `var'
+  3.         display "`var'" _col(20) "`: type `var''"
+  4. }
+LRTi               int
+currage            int
+gender             int
+partner            int
+vaccine            int
+
+. 
+. 
+. /* 
+> Testing that the split was done properly with no corruption
+> _d = outcome indicator for each record
+> _t0 = Entry Time
+> _t = Exit Time
+> */
+. list patid _d _t0 _t LRTi currage if patid == 49
+
+      +------------------------------------------------------------+
+      | patid   _d         _t0          _t          LRTi   currage |
+      |------------------------------------------------------------|
+   2. |    49    0   77.347023   79.091034       LRTi(-)     75-79 |
+   3. |    49    0   79.091034   79.341034   <= 3 months     75-79 |
+   4. |    49    0   79.341034          80    > 3 months     75-79 |
+   5. |    49    1          80   80.914442    > 3 months     80-84 |
+      +------------------------------------------------------------+
+
+. 
+. tab _d
+
+       1 if |
+ failure; 0 |
+if censored |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      2,182       83.28       83.28
+          1 |        438       16.72      100.00
+------------+-----------------------------------
+      Total |      2,620      100.00
+
+. 
+. /* 
+> Data is correct, however "missing" values were filled in for the expanded dataset for "died" variable.
+> This may interfere with future analysis (?), and so they will be recoded to "0" aka not dead
+>  */
+. 
+. recode died .=0
+(1752 changes made to died)
+
+. 
+. /* More descriptive analysis with the new exposure variables */
+. foreach var in gender vaccine currage partner{
+  2.         tab LRTi `var', col chi
+  3. }
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+Observation |       0=M, 1=F
+   interval |      Male     Female |     Total
+------------+----------------------+----------
+    LRTi(-) |       683        962 |     1,645 
+            |     66.50      60.39 |     62.79 
+------------+----------------------+----------
+<= 3 months |       136        227 |       363 
+            |     13.24      14.25 |     13.85 
+------------+----------------------+----------
+ > 3 months |       208        404 |       612 
+            |     20.25      25.36 |     23.36 
+------------+----------------------+----------
+      Total |     1,027      1,593 |     2,620 
+            |    100.00     100.00 |    100.00 
+
+          Pearson chi2(2) =  11.1508   Pr = 0.004
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+Observation |    GP flu register
+   interval |   Refused   Accepted |     Total
+------------+----------------------+----------
+    LRTi(-) |       687        958 |     1,645 
+            |     53.42      71.81 |     62.79 
+------------+----------------------+----------
+<= 3 months |       226        137 |       363 
+            |     17.57      10.27 |     13.85 
+------------+----------------------+----------
+ > 3 months |       373        239 |       612 
+            |     29.00      17.92 |     23.36 
+------------+----------------------+----------
+      Total |     1,286      1,334 |     2,620 
+            |    100.00     100.00 |    100.00 
+
+          Pearson chi2(2) =  94.9583   Pr = 0.000
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+Observation |       Observation interval
+   interval |     75-79      80-84        85+ |     Total
+------------+---------------------------------+----------
+    LRTi(-) |       600        642        403 |     1,645 
+            |     76.63      60.97      51.40 |     62.79 
+------------+---------------------------------+----------
+<= 3 months |        96        171         96 |       363 
+            |     12.26      16.24      12.24 |     13.85 
+------------+---------------------------------+----------
+ > 3 months |        87        240        285 |       612 
+            |     11.11      22.79      36.35 |     23.36 
+------------+---------------------------------+----------
+      Total |       783      1,053        784 |     2,620 
+            |    100.00     100.00     100.00 |    100.00 
+
+          Pearson chi2(4) = 154.9440   Pr = 0.000
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+Observation |          Marital status
+   interval |   Married   Divorced     Single |     Total
+------------+---------------------------------+----------
+    LRTi(-) |     1,183        196        266 |     1,645 
+            |     62.43      59.04      67.68 |     62.79 
+------------+---------------------------------+----------
+<= 3 months |       259         52         52 |       363 
+            |     13.67      15.66      13.23 |     13.85 
+------------+---------------------------------+----------
+ > 3 months |       453         84         75 |       612 
+            |     23.91      25.30      19.08 |     23.36 
+------------+---------------------------------+----------
+      Total |     1,895        332        393 |     2,620 
+            |    100.00     100.00     100.00 |    100.00 
+
+          Pearson chi2(4) =   7.0784   Pr = 0.132
+
+.  
+. /* Crude estimate Rates for the exposures */
+. foreach var in gender vaccine LRTi currage partner{
+  2.         strate `var', per(1000)
+  3. }
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Estimated failure rates
+Number of records = 2620
+
+  +--------------------------------------------------+
+  | gender     D        Y     Rate    Lower    Upper |
+  |--------------------------------------------------|
+  |   Male   185   2.4329   76.041   65.836   87.827 |
+  | Female   253   3.8336   65.995   58.344   74.650 |
+  +--------------------------------------------------+
+   Notes: Rate = D/Y = failures/person-time (per 1000).
+          Lower and Upper are bounds of 95% confidence intervals.
+
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Estimated failure rates
+Number of records = 2620
+
+  +----------------------------------------------------+
+  |  vaccine     D        Y     Rate    Lower    Upper |
+  |----------------------------------------------------|
+  |  Refused   156   2.8429   54.873   46.903   64.196 |
+  | Accepted   282   3.4235   82.371   73.297   92.568 |
+  +----------------------------------------------------+
+   Notes: Rate = D/Y = failures/person-time (per 1000).
+          Lower and Upper are bounds of 95% confidence intervals.
+
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Estimated failure rates
+Number of records = 2620
+
+  +----------------------------------------------------------+
+  |        LRTi     D        Y      Rate     Lower     Upper |
+  |----------------------------------------------------------|
+  |     LRTi(-)   314   4.6200    67.966    60.849    75.915 |
+  | <= 3 months    21   0.0841   249.823   162.886   383.160 |
+  |  > 3 months   103   1.5625    65.921    54.344    79.965 |
+  +----------------------------------------------------------+
+   Notes: Rate = D/Y = failures/person-time (per 1000).
+          Lower and Upper are bounds of 95% confidence intervals.
+
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Estimated failure rates
+Number of records = 2620
+
+  +----------------------------------------------------+
+  | currage     D        Y     Rate    Lower     Upper |
+  |----------------------------------------------------|
+  |   75-79    74   1.5064   49.122   39.114    61.692 |
+  |   80-84   178   2.8704   62.012   53.540    71.825 |
+  |     85+   186   1.8896   98.431   85.255   113.644 |
+  +----------------------------------------------------+
+   Notes: Rate = D/Y = failures/person-time (per 1000).
+          Lower and Upper are bounds of 95% confidence intervals.
+
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Estimated failure rates
+Number of records = 2620
+
+  +------------------------------------------------------+
+  |  partner     D        Y      Rate    Lower     Upper |
+  |------------------------------------------------------|
+  |  Married   284   4.6602    60.942   54.250    68.458 |
+  | Divorced    52   0.7293    71.301   54.332    93.569 |
+  |   Single   102   0.8770   116.307   95.791   141.218 |
+  +------------------------------------------------------+
+   Notes: Rate = D/Y = failures/person-time (per 1000).
+          Lower and Upper are bounds of 95% confidence intervals.
+
+
+. 
+. /* Crude estimate Rate Ratios for the exposures */
+. stmh LRTi, c(1, 0)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing LRTi==1 vs. LRTi==0
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         3.676        38.34         0.0000              2.363      5.717
+------------------------------------------------------------------------
+
+. stmh LRTi, c(2, 0)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing LRTi==2 vs. LRTi==0
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         0.970         0.07         0.7880              0.776      1.212
+------------------------------------------------------------------------
+
+. stmh currage, c(80, 75)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing currage==80 vs. currage==75
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         1.262         2.85         0.0913              0.963      1.656
+------------------------------------------------------------------------
+
+. stmh currage, c(85, 75)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing currage==85 vs. currage==75
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         2.004        26.62         0.0000              1.531      2.623
+------------------------------------------------------------------------
+
+. /* setting married as baseline */
+. stmh partner, c(1, 0) 
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing partner==1 vs. partner==0
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         1.170         1.09         0.2975              0.871      1.572
+------------------------------------------------------------------------
+
+. stmh partner, c(2, 0)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing partner==2 vs. partner==0
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         1.909        32.46         0.0000              1.522      2.393
+------------------------------------------------------------------------
+
+. /* Male as baseline */
+. stmh gender, c(0, 1)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing gender==0 vs. gender==1
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         1.152         2.15         0.1427              0.953      1.393
+------------------------------------------------------------------------
+
+. /* Refused as baseline */
+. stmh vaccine, c(0, 1)
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimate of the rate ratio
+  comparing vaccine==0 vs. vaccine==1
+
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         0.666        16.80         0.0000              0.548      0.810
+------------------------------------------------------------------------
+
+. 
+. /* Variable association to primary exposure */
+. 
+. foreach var in currage gender partner vaccine {
+  2.         tab `var' LRTi , col chi
+  3. }
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+Observatio |       Observation interval
+n interval |   LRTi(-)  <= 3 mont  > 3 month |     Total
+-----------+---------------------------------+----------
+     75-79 |       600         96         87 |       783 
+           |     36.47      26.45      14.22 |     29.89 
+-----------+---------------------------------+----------
+     80-84 |       642        171        240 |     1,053 
+           |     39.03      47.11      39.22 |     40.19 
+-----------+---------------------------------+----------
+       85+ |       403         96        285 |       784 
+           |     24.50      26.45      46.57 |     29.92 
+-----------+---------------------------------+----------
+     Total |     1,645        363        612 |     2,620 
+           |    100.00     100.00     100.00 |    100.00 
+
+          Pearson chi2(4) = 154.9440   Pr = 0.000
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+           |       Observation interval
+  0=M, 1=F |   LRTi(-)  <= 3 mont  > 3 month |     Total
+-----------+---------------------------------+----------
+      Male |       683        136        208 |     1,027 
+           |     41.52      37.47      33.99 |     39.20 
+-----------+---------------------------------+----------
+    Female |       962        227        404 |     1,593 
+           |     58.48      62.53      66.01 |     60.80 
+-----------+---------------------------------+----------
+     Total |     1,645        363        612 |     2,620 
+           |    100.00     100.00     100.00 |    100.00 
+
+          Pearson chi2(2) =  11.1508   Pr = 0.004
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+   Marital |       Observation interval
+    status |   LRTi(-)  <= 3 mont  > 3 month |     Total
+-----------+---------------------------------+----------
+   Married |     1,183        259        453 |     1,895 
+           |     71.91      71.35      74.02 |     72.33 
+-----------+---------------------------------+----------
+  Divorced |       196         52         84 |       332 
+           |     11.91      14.33      13.73 |     12.67 
+-----------+---------------------------------+----------
+    Single |       266         52         75 |       393 
+           |     16.17      14.33      12.25 |     15.00 
+-----------+---------------------------------+----------
+     Total |     1,645        363        612 |     2,620 
+           |    100.00     100.00     100.00 |    100.00 
+
+          Pearson chi2(4) =   7.0784   Pr = 0.132
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+    GP flu |       Observation interval
+  register |   LRTi(-)  <= 3 mont  > 3 month |     Total
+-----------+---------------------------------+----------
+   Refused |       687        226        373 |     1,286 
+           |     41.76      62.26      60.95 |     49.08 
+-----------+---------------------------------+----------
+  Accepted |       958        137        239 |     1,334 
+           |     58.24      37.74      39.05 |     50.92 
+-----------+---------------------------------+----------
+     Total |     1,645        363        612 |     2,620 
+           |    100.00     100.00     100.00 |    100.00 
+
+          Pearson chi2(2) =  94.9583   Pr = 0.000
+
+. 
+. /* 
+> Individually adjusted Rate Ratios by confounder per stratum of LRTi 
+> Also assesses effect modification 
+> */
+. foreach var in currage gender partner vaccine{
+  2.         stmh LRTi, by(`var') c(1, 0)
+  3.         stmh LRTi, by(`var') c(2, 0)
+  4. }
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==1 vs. LRTi==0
+  by currage
+
+  +--------------------------------------+
+  | currage   Rate ratio   Lower   Upper |
+  |--------------------------------------|
+  |   75-79         1.70    0.42    6.92 |
+  |   80-84         2.81    1.32    6.02 |
+  |     85+         5.74    3.16   10.41 |
+  +--------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for currage
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         3.647        37.78         0.0000              2.344      5.674
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(2)   =     3.91
+                                                    Pr>chi2   =   0.1417
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==2 vs. LRTi==0
+  by currage
+
+  +--------------------------------------+
+  | currage   Rate ratio   Lower   Upper |
+  |--------------------------------------|
+  |   75-79         0.46    0.15    1.47 |
+  |   80-84         0.82    0.57    1.17 |
+  |     85+         0.91    0.67    1.24 |
+  +--------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for currage
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         0.838         2.27         0.1323              0.665      1.055
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(2)   =     1.33
+                                                    Pr>chi2   =   0.5139
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==1 vs. LRTi==0
+  by gender
+
+  +-------------------------------------+
+  | gender   Rate ratio   Lower   Upper |
+  |-------------------------------------|
+  |   Male         6.63    3.89   11.30 |
+  | Female         1.75    0.77    3.94 |
+  +-------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for gender
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         3.690        38.71         0.0000              2.374      5.735
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(1)   =     8.16
+                                                    Pr>chi2   =   0.0043
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==2 vs. LRTi==0
+  by gender
+
+  +-------------------------------------+
+  | gender   Rate ratio   Lower   Upper |
+  |-------------------------------------|
+  |   Male         0.94    0.65    1.36 |
+  | Female         1.00    0.75    1.32 |
+  +-------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for gender
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         0.976         0.05         0.8291              0.780      1.220
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(1)   =     0.06
+                                                    Pr>chi2   =   0.8004
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==1 vs. LRTi==0
+  by partner
+
+  +---------------------------------------+
+  |  partner   Rate ratio   Lower   Upper |
+  |---------------------------------------|
+  |  Married         3.01    1.64    5.51 |
+  | Divorced         6.87    2.66   17.75 |
+  |   Single         3.88    1.57    9.61 |
+  +---------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for partner
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         3.698        38.58         0.0000              2.375      5.759
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(2)   =     2.15
+                                                    Pr>chi2   =   0.3413
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==2 vs. LRTi==0
+  by partner
+
+  +---------------------------------------+
+  |  partner   Rate ratio   Lower   Upper |
+  |---------------------------------------|
+  |  Married         0.87    0.65    1.15 |
+  | Divorced         1.48    0.82    2.67 |
+  |   Single         1.14    0.71    1.82 |
+  +---------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for partner
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         0.989         0.01         0.9255              0.792      1.237
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(2)   =     3.05
+                                                    Pr>chi2   =   0.2177
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==1 vs. LRTi==0
+  by vaccine
+
+  +---------------------------------------+
+  |  vaccine   Rate ratio   Lower   Upper |
+  |---------------------------------------|
+  |  Refused         7.17    4.19   12.28 |
+  | Accepted         1.84    0.76    4.47 |
+  +---------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for vaccine
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         4.227        46.72         0.0000              2.695      6.630
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(1)   =     7.38
+                                                    Pr>chi2   =   0.0066
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Mantel–Haenszel estimates of the rate ratio
+  comparing LRTi==2 vs. LRTi==0
+  by vaccine
+
+  +---------------------------------------+
+  |  vaccine   Rate ratio   Lower   Upper |
+  |---------------------------------------|
+  |  Refused         1.50    1.07    2.09 |
+  | Accepted         0.81    0.58    1.12 |
+  +---------------------------------------+
+  Note: Lower and Upper are bounds of 95% confidence intervals.
+
+Overall Mantel–Haenszel estimate, controlling for vaccine
+------------------------------------------------------------------------
+    Rate ratio         chi2         P>chi2          [95% conf. interval]
+------------------------------------------------------------------------
+         1.076         0.39         0.5335              0.854      1.357
+------------------------------------------------------------------------
+Approx. test for unequal RRs (effect modification): chi2(1)   =     6.70
+                                                    Pr>chi2   =   0.0096
+
+. 
+. 
+. /* Poisson Model Building */
+. streg i.LRTi, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(2)    =  23.86
+Log likelihood = 349.4838                               Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        LRTi |
+<= 3 months  |   3.675719   .8284957     5.78   0.000     2.363111    5.717425
+ > 3 months  |    .969922    .110134    -0.27   0.788     .7763963    1.211686
+             |
+       _cons |   .0679658   .0038355   -47.64   0.000     .0608491    .0759148
+------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. 
+. foreach var in currage gender partner vaccine{
+  2.         streg i.LRTi i.`var', d(exp) nolog
+  3. }
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(4)    =  59.89
+Log likelihood = 367.49983                              Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        LRTi |
+<= 3 months  |   3.643113   .8211753     5.74   0.000     2.342112    5.666796
+ > 3 months  |    .830373   .0965987    -1.60   0.110     .6610763    1.043025
+             |
+     currage |
+      80-84  |   1.303556   .1815331     1.90   0.057     .9921825    1.712648
+        85+  |   2.129251   .2994698     5.37   0.000     1.616252    2.805076
+             |
+       _cons |   .0478665   .0056134   -25.92   0.000     .0380374    .0602356
+------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(3)    =  26.00
+Log likelihood = 350.55512                              Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        LRTi |
+<= 3 months  |   3.692768   .8324215     5.80   0.000     2.373967    5.744197
+ > 3 months  |   .9805047   .1115781    -0.17   0.863     .7844871    1.225501
+             |
+      gender |
+     Female  |   .8671997   .0840741    -1.47   0.142     .7171268    1.048678
+       _cons |    .073772   .0057664   -33.35   0.000     .0632932    .0859857
+------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(4)    =  51.72
+Log likelihood = 363.41388                              Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        LRTi |
+<= 3 months  |   3.673679   .8283444     5.77   0.000     2.361411    5.715193
+ > 3 months  |    .988514   .1123974    -0.10   0.919     .7910397    1.235286
+             |
+     partner |
+   Divorced  |   1.156689   .1745937     0.96   0.335     .8604667    1.554889
+     Single  |   1.904234   .2199611     5.58   0.000     1.518437    2.388053
+             |
+       _cons |   .0590921   .0039374   -42.45   0.000     .0518577    .0673358
+------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(3)    =  43.32
+Log likelihood = 359.21781                              Prob > chi2   = 0.0000
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        LRTi |
+<= 3 months  |   4.045352   .9159472     6.17   0.000     2.595539       6.305
+ > 3 months  |   1.062161   .1225253     0.52   0.601     .8472277     1.33162
+             |
+     vaccine |
+   Accepted  |    1.55423   .1579629     4.34   0.000     1.273515    1.896821
+       _cons |   .0509758   .0046332   -32.75   0.000     .0426579    .0609157
+------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. 
+. /* LRTs */
+. /* Individually assessing model fit of each variable */
+. foreach var in currage gender partner vaccine{
+  2.         quietly streg i.LRTi i.`var', d(exp) nolog
+  3.         est store a
+  4.         quietly streg i.LRTi, d(exp) nolog
+  5.         est store b
+  6.         lrtest a b
+  7. }
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  36.03
+Prob > chi2 = 0.0000
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(1) =   2.14
+Prob > chi2 = 0.1433
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  27.86
+Prob > chi2 = 0.0000
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(1) =  19.47
+Prob > chi2 = 0.0000
+
+. 
+. /* Assessing effect modification for each variable */
+. foreach var in currage gender partner vaccine{
+  2.         quietly streg i.LRTi##i.`var', d(exp) nolog
+  3.         est store a
+  4.         quietly streg i.LRTi i.`var', d(exp) nolog
+  5.         est store b
+  6.         lrtest a b
+  7. }
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(4) =   5.09
+Prob > chi2 = 0.2778
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =   8.46
+Prob > chi2 = 0.0145
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(4) =   4.24
+Prob > chi2 = 0.3748
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  12.69
+Prob > chi2 = 0.0018
+
+. 
+. /* Assessing the significance of the primary exposure against each other variable */
+. foreach var in currage gender partner vaccine{
+  2.         quietly streg i.`var' i.LRTi, d(exp) nolog
+  3.         est store a
+  4.         quietly streg i.`var', d(exp) nolog
+  5.         est store b
+  6.         lrtest a b
+  7. }
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  27.33
+Prob > chi2 = 0.0000
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  23.87
+Prob > chi2 = 0.0000
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  23.63
+Prob > chi2 = 0.0000
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(2) =  26.20
+Prob > chi2 = 0.0000
+
+. 
+. /* Effect Modification Significance */
+. streg i.LRTi##i.vaccine, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(5)    =  56.01
+Log likelihood = 365.56102                              Prob > chi2   = 0.0000
+
+---------------------------------------------------------------------------------------
+                   _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+----------------------+----------------------------------------------------------------
+                 LRTi |
+         <= 3 months  |   7.174962   1.967016     7.19   0.000       4.1924    12.27938
+          > 3 months  |    1.49806   .2553377     2.37   0.018      1.07262    2.092246
+                      |
+              vaccine |
+            Accepted  |   1.971883   .2564475     5.22   0.000     1.528201    2.544378
+                      |
+         LRTi#vaccine |
+<= 3 months#Accepted  |   .2568731    .135782    -2.57   0.010     .0911543    .7238693
+ > 3 months#Accepted  |   .5405434   .1291848    -2.57   0.010     .3383775    .8634949
+                      |
+                _cons |   .0428954   .0048261   -27.99   0.000     .0344067    .0534783
+---------------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. est store a
+
+. quietly streg i.LRTi, d(exp) nolog
+
+. est store b
+
+. lrtest a b
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(3) =  32.15
+Prob > chi2 = 0.0000
+
+. 
+. streg i.LRTi##i.gender, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(5)    =  34.46
+Log likelihood = 354.78597                              Prob > chi2   = 0.0000
+
+-------------------------------------------------------------------------------------
+                 _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+               LRTi |
+       <= 3 months  |   6.627887   1.803882     6.95   0.000     3.887831    11.29907
+        > 3 months  |   .9392415   .1781562    -0.33   0.741     .6476206    1.362178
+                    |
+             gender |
+            Female  |   .9113131   .1038817    -0.81   0.415     .7288499    1.139455
+                    |
+        LRTi#gender |
+<= 3 months#Female  |   .2637049   .1308804    -2.69   0.007     .0996908    .6975594
+ > 3 months#Female  |   1.061789   .2518732     0.25   0.800      .666991    1.690273
+                    |
+              _cons |   .0717363   .0061741   -30.61   0.000     .0606009    .0849178
+-------------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. est store a
+
+. quietly streg i.LRTi, d(exp) nolog
+
+. est store b
+
+. lrtest a b
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(3) =  10.60
+Prob > chi2 = 0.0141
+
+. 
+. /* Effect Modification Significance WITH confounding adjustments */
+. streg i.LRTi##i.vaccine i.currage, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(7)    =  88.60
+Log likelihood = 381.85639                              Prob > chi2   = 0.0000
+
+---------------------------------------------------------------------------------------
+                   _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+----------------------+----------------------------------------------------------------
+                 LRTi |
+         <= 3 months  |   6.895363   1.891037     7.04   0.000     4.028257    11.80313
+          > 3 months  |   1.250307   .2165556     1.29   0.197     .8904034    1.755684
+                      |
+              vaccine |
+            Accepted  |   1.901451   .2478452     4.93   0.000     1.472771    2.454909
+                      |
+         LRTi#vaccine |
+<= 3 months#Accepted  |   .2728125   .1442394    -2.46   0.014     .0967884    .7689626
+ > 3 months#Accepted  |   .5754062   .1377023    -2.31   0.021     .3599737    .9197681
+                      |
+              currage |
+               80-84  |   1.317867    .183634     1.98   0.048     1.002914    1.731727
+                 85+  |   2.070081   .2910068     5.18   0.000     1.571548    2.726761
+                      |
+                _cons |   .0310617   .0047213   -22.84   0.000     .0230593    .0418413
+---------------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. est store a
+
+. quietly streg i.LRTi i.currage, d(exp) nolog
+
+. est store b
+
+. lrtest a b
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(3) =  28.71
+Prob > chi2 = 0.0000
+
+. 
+. streg i.LRTi##i.gender i.currage, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(7)    =  68.66
+Log likelihood = 371.88701                              Prob > chi2   = 0.0000
+
+-------------------------------------------------------------------------------------
+                 _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+               LRTi |
+       <= 3 months  |   6.413401   1.746028     6.83   0.000     3.761417    10.93516
+        > 3 months  |    .830526   .1584493    -0.97   0.330     .5714252    1.207111
+                    |
+             gender |
+            Female  |   .9621433    .110073    -0.34   0.736     .7688806    1.203984
+                    |
+        LRTi#gender |
+<= 3 months#Female  |   .2736012   .1358195    -2.61   0.009     .1034117    .7238797
+ > 3 months#Female  |   1.009728   .2397019     0.04   0.967     .6340679    1.607953
+                    |
+            currage |
+             80-84  |   1.303381   .1815945     1.90   0.057      .991921    1.712638
+               85+  |   2.098189   .2959794     5.25   0.000     1.591368    2.766424
+                    |
+              _cons |   .0492108   .0067371   -22.00   0.000     .0376295    .0643564
+-------------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. est store a
+
+. quietly streg i.LRTi i.currage, d(exp) nolog
+
+. est store b
+
+. lrtest a b
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(3) =   8.77
+Prob > chi2 = 0.0324
+
+. 
+. /* Testing for departure of linear trend after adjusting for condounding (Age). LRTi first, then age */
+. quietly streg i.LRTi i.currage, d(exp) nolog
+
+. est store a
+
+. quietly streg LRTi i.currage, d(exp) nolog
+
+. est store b
+
+. lrtest a b
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(1) =  25.91
+Prob > chi2 = 0.0000
+
+. 
+. quietly streg i.LRTi i.currage, d(exp) nolog
+
+. est store a
+
+. quietly streg i.LRTi currage, d(exp) nolog
+
+. est store b
+
+. lrtest a b
+
+Likelihood-ratio test
+Assumption: b nested within a
+
+ LR chi2(1) =   1.23
+Prob > chi2 = 0.2671
+
+. 
+. /* Effect Modification stratification */
+. streg LRTi##i.vaccine i.currage, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(7)    =  88.60
+Log likelihood = 381.85639                              Prob > chi2   = 0.0000
+
+---------------------------------------------------------------------------------------
+                   _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+----------------------+----------------------------------------------------------------
+                 LRTi |
+         <= 3 months  |   6.895363   1.891037     7.04   0.000     4.028257    11.80313
+          > 3 months  |   1.250307   .2165556     1.29   0.197     .8904034    1.755684
+                      |
+              vaccine |
+            Accepted  |   1.901451   .2478452     4.93   0.000     1.472771    2.454909
+                      |
+         LRTi#vaccine |
+<= 3 months#Accepted  |   .2728125   .1442394    -2.46   0.014     .0967884    .7689626
+ > 3 months#Accepted  |   .5754062   .1377023    -2.31   0.021     .3599737    .9197681
+                      |
+              currage |
+               80-84  |   1.317867    .183634     1.98   0.048     1.002914    1.731727
+                 85+  |   2.070081   .2910068     5.18   0.000     1.571548    2.726761
+                      |
+                _cons |   .0310617   .0047213   -22.84   0.000     .0230593    .0418413
+---------------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. lincom 1.LRTi + 1.LRTi#1.vaccine, hr
+
+ ( 1)  [_t]1.LRTi + [_t]1.LRTi#1.vaccine = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   1.881141   .8502044     1.40   0.162       .77573    4.561758
+------------------------------------------------------------------------------
+
+. lincom 2.LRTi + 2.LRTi#1.vaccine, hr
+
+ ( 1)  [_t]2.LRTi + [_t]2.LRTi#1.vaccine = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   .7194343   .1214386    -1.95   0.051     .5167858    1.001548
+------------------------------------------------------------------------------
+
+. lincom 1.vaccine + 1.LRTi#1.vaccine, hr
+
+ ( 1)  [_t]1.vaccine + [_t]1.LRTi#1.vaccine = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   .5187397   .2657915    -1.28   0.200     .1900253    1.416079
+------------------------------------------------------------------------------
+
+. lincom 1.vaccine + 2.LRTi#1.vaccine, hr
+
+ ( 1)  [_t]1.vaccine + [_t]2.LRTi#1.vaccine = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   1.094107   .2194227     0.45   0.654      .738502    1.620944
+------------------------------------------------------------------------------
+
+. 
+. streg LRTi##i.gender i.currage, d(exp) nolog
+
+         Failure _d: died
+   Analysis time _t: (dateofexit-origin)/365.25
+             Origin: time dateofbirth
+  Enter on or after: time dateofentry
+        ID variable: patid
+
+Exponential PH regression
+
+No. of subjects =        868                            Number of obs =  2,620
+No. of failures =        438
+Time at risk    = 6,266.4981
+                                                        LR chi2(7)    =  68.66
+Log likelihood = 371.88701                              Prob > chi2   = 0.0000
+
+-------------------------------------------------------------------------------------
+                 _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+               LRTi |
+       <= 3 months  |   6.413401   1.746028     6.83   0.000     3.761417    10.93516
+        > 3 months  |    .830526   .1584493    -0.97   0.330     .5714252    1.207111
+                    |
+             gender |
+            Female  |   .9621433    .110073    -0.34   0.736     .7688806    1.203984
+                    |
+        LRTi#gender |
+<= 3 months#Female  |   .2736012   .1358195    -2.61   0.009     .1034117    .7238797
+ > 3 months#Female  |   1.009728   .2397019     0.04   0.967     .6340679    1.607953
+                    |
+            currage |
+             80-84  |   1.303381   .1815945     1.90   0.057      .991921    1.712638
+               85+  |   2.098189   .2959794     5.25   0.000     1.591368    2.766424
+                    |
+              _cons |   .0492108   .0067371   -22.00   0.000     .0376295    .0643564
+-------------------------------------------------------------------------------------
+Note: _cons estimates baseline hazard.
+
+. lincom 1.LRTi + 1.LRTi#1.gender, hr
+
+ ( 1)  [_t]1.LRTi + [_t]1.LRTi#1.gender = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   1.754714   .7283033     1.35   0.175     .7778766    3.958239
+------------------------------------------------------------------------------
+
+. lincom 2.LRTi + 2.LRTi#1.gender, hr
+
+ ( 1)  [_t]2.LRTi + [_t]2.LRTi#1.gender = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   .8386057   .1219429    -1.21   0.226     .6306426    1.115147
+------------------------------------------------------------------------------
+
+. lincom 1.gender + 1.LRTi#1.gender, hr
+
+ ( 1)  [_t]1.gender + [_t]1.LRTi#1.gender = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   .2632436   .1272493    -2.76   0.006     .1020694    .6789221
+------------------------------------------------------------------------------
+
+. lincom 1.gender + 2.LRTi#1.gender, hr
+
+ ( 1)  [_t]1.gender + [_t]2.LRTi#1.gender = 0
+
+------------------------------------------------------------------------------
+          _t | Haz. ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   .9715034   .2021051    -0.14   0.889     .6461987    1.460571
+------------------------------------------------------------------------------
+
+. 
+end of do-file
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\PATH\TO\DATA\LRTi.log
+  log type:  text
+ closed on:  DATE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
