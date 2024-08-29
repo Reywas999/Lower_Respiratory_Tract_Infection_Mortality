@@ -41,3 +41,5 @@ than individuals that accepted the vaccine and did not contract a LRTi (Table 3)
 Males are at increased risk (Table 3) of mortality at <= 3 months from LRTi contraction. The significant (p = 0.002) discrepancy 
 in vaccine acceptance amongst the genders, with males being much less likely to accept vaccination, may be a contributing factor 
 to this effect. 
+![Screenshot 2024-08-28 173656](https://github.com/user-attachments/assets/c228fa58-1319-4026-8cf2-ec05de1c2df3)
+
