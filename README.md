@@ -1,10 +1,10 @@
 # Lower_Respiratory_Tract_Infection_Mortality
 Analyzing the effect time following a lower respiratory tract infection (LRTi) has on mortality.\
-\
+
 __________________________________________________________________________________________________
 See "LRTi_Paper.docx" for a full description of methods and conclusions.
 __________________________________________________________________________________________________
-\
+
 ### Methods
 Lexis expansion used to create primary exposure and current age variables.\
 Crude Mantel–Haenszel rate ratios, 95% C.I., and chi-squared p-values were calculated 
