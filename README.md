@@ -2,7 +2,8 @@
 Analyzing the effect time following a lower respiratory tract infection (LRTi) has on mortality.\
 
 __________________________________________________________________________________________________
-See "LRTi_Paper.docx" for a full description of methods and conclusions.
+See "LRTi_Paper.docx" for a full description of methods and conclusions.\
+DATA was sourced from a school project. These data reflect real patient data, but are fabricated.
 __________________________________________________________________________________________________
 
 ### Methods
