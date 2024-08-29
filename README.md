@@ -22,7 +22,7 @@ each variable individually. Departure of linear trend for non-binary variables w
 variables.\
 Any variables that did not act as confounding or effect modifying were dropped from the final models. Two final models 
 were created. Both adjusted for confounding, but each had a different effect modifier. Stratified Hazard Ratios (HR), 
-95% c.i., and p-value estimates are reported via linear combinations of parameters (lincom) for each model separately.\
+95% c.i., and p-value estimates are reported via linear combinations of parameters (lincom) for each model separately.
 
 ### Conclusions
 After adjusting for confounding, there is a 3.7 (c.i. 2.3 to 5.7, p < 0.001) times chance of mortality for care home 
